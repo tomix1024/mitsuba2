@@ -5,5 +5,7 @@ add_plugin(radiancemeter   radiancemeter.cpp)
 add_plugin(thinlens        thinlens.cpp)
 add_plugin(irradiancemeter irradiancemeter.cpp)
 
+add_plugin(opencv          opencv.cpp)
+
 # Register the test directory
 add_tests(${CMAKE_CURRENT_SOURCE_DIR}/tests)
