@@ -136,6 +136,27 @@ public:
     //! @{ \name Ray tracing routines
     // =============================================================
 
+    SurfaceInteraction3f eval_parameterization(const Point2f &point_, Mask active) const override {
+        //std::cout << m_frame << std::endl;
+        //sample_position(0, Point2f(1.0, 1.0), Mask());
+        //std::cout << bbox() << std::endl;
+
+        SurfaceInteraction3f si = zero<SurfaceInteraction3f>();
+        si.t = select(active, Float(0.f), math::Infinity<Float>);
+        PositionSample3f ps = sample_position(0, point_, active);
+        si.p = ps.p;
+
+        si.n          = m_frame.n;
+        si.sh_frame.n = m_frame.n;
+        si.dp_du      = m_frame.s;
+        si.dp_dv      = m_frame.t;
+        si.uv         = point_;
+        si.dn_du = si.dn_dv = zero<Vector3f>();
+
+        return si;
+        //NotImplementedError("eval_parameterization");
+    }
+
     PreliminaryIntersection3f ray_intersect_preliminary(const Ray3f &ray_,
                                                         Mask active) const override {
         MTS_MASK_ARGUMENT(active);
