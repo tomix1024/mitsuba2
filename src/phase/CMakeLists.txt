@@ -1,6 +1,7 @@
 set(MTS_PLUGIN_PREFIX "phasefunctions")
 
 add_plugin(hg hg.cpp)
+add_plugin(hg_varying hg_varying.cpp)
 add_plugin(isotropic isotropic.cpp)
 
 # Register the test directory
