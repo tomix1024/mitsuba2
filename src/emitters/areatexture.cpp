@@ -58,7 +58,7 @@ public:
 
         m_flags = +EmitterFlags::Surface;
         if (m_radiancetex->is_spatially_varying()) {
-            std::cout << "spacially varying radiance" << std::endl;
+            //std::cout << "spacially varying radiance" << std::endl;
             m_flags |= +EmitterFlags::SpatiallyVarying;
         }
 
@@ -86,7 +86,7 @@ public:
 
         // 1. Two strategies to sample spatial component based on 'm_radiance'
         if (!m_radiancetex->is_spatially_varying()) {
-            std::cout << "not varying" << std::endl;
+            //std::cout << "not varying" << std::endl;
             PositionSample3f ps = m_shape->sample_position(time, sample2, active);
 
             // Radiance not spatially varying, use area-based sampling of shape
