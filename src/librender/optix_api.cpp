@@ -53,7 +53,7 @@ bool optix_initialize() {
     optix_init_attempted = true;
 
 #if !defined(MTS_USE_OPTIX_HEADERS)
-    Log(LogLevel::Info, "Dynamic loading of the Optix library ..");
+    //Log(LogLevel::Info, "Dynamic loading of the Optix library ..");
 
     optix_handle = nullptr;
 
