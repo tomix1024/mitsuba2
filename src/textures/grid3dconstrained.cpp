@@ -358,7 +358,7 @@ public:
 
             //result = ResultType(0.99);
             return result;
-        } else { // TODO also set nearest neighbour
+        } else {
             // Scale to volume resolution, no shift
             p *= m_metadata.shape;
 
@@ -366,9 +366,10 @@ public:
             Vector3i p_i   = floor2int<Vector3i>(p),
                     p_i_w = wrap(p_i);
 
-            Int32 index = fmadd(fmadd(p_i_w.z(), ny, p_i_w.y()), nx, p_i_w.x());
+            Int32 constr_index = fmadd(fmadd(p_i_w.z(), ny, p_i_w.y()), nx, p_i_w.x());
+            Int32 index = enoki::floor2int<Int32>(gather<StorageType>(m_data, constr_index, active)[0]);  // read index from constraint volume file to get real index in data volume file
 
-            StorageType v = gather<StorageType>(m_data, index, active);
+            StorageType v = gather<StorageType>(m_data_values, index, active);
 
             if constexpr (uses_srgb_model)
                 return v.w() * srgb_model_eval<UnpolarizedSpectrum>(head<3>(v), wavelengths);
