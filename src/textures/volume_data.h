@@ -66,10 +66,10 @@ read_binary_volume_data(const std::string &filename) {
     meta.shape.y() = detail::read<int32_t>(f);
     meta.shape.z() = detail::read<int32_t>(f);
     size_t size    = hprod(meta.shape);
-    if (size < 8)
+    /*if (size < 8)  // need to comment this out since grid3dconstrained allows for under 8 values
         Throw("Invalid grid dimensions: %d x %d x %d < 8 (must have at "
               "least one value at each corner)",
-              meta.shape.x(), meta.shape.y(), meta.shape.z());
+              meta.shape.x(), meta.shape.y(), meta.shape.z());*/
 
     meta.channel_count = detail::read<int32_t>(f);
 
