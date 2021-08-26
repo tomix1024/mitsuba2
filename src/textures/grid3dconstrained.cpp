@@ -159,6 +159,7 @@ public:
 
 
         m_size     = hprod(m_metadata.shape);
+        m_size_values     = hprod(m_metadata_values.shape);
         if (props.bool_("use_grid_bbox", false)) {
             m_world_to_local = m_metadata.transform * m_world_to_local;
             update_bbox();
@@ -387,6 +388,7 @@ public:
         callback->put_parameter("data", m_data);
         callback->put_parameter("data_values", m_data_values);
         callback->put_parameter("size", m_size);
+        callback->put_parameter("size_values", m_size_values);
         Base::traverse(callback);
     }
 
@@ -433,6 +435,7 @@ protected:
     enoki::divisor<int32_t> m_inv_resolution_x, m_inv_resolution_y, m_inv_resolution_z;
 
     ScalarUInt32 m_size;
+    ScalarUInt32 m_size_values;
     FilterType m_filter_type;
     WrapMode m_wrap_mode;
 };
