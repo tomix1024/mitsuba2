@@ -69,7 +69,7 @@ public:
         m_data = DynamicBuffer<Float>::copy(raw_data.get(), size * m_metadata.channel_count);
 
         auto [metadata_values, raw_data_values] = read_binary_volume_data<Float>(props.string("filename_voldata"));
-        m_metadata_values                = metadata;
+        m_metadata_values                = metadata_values;
         ScalarUInt32 size_values         = hprod(metadata_values.shape);
         // Apply spectral conversion if necessary
         if (is_spectral_v<Spectrum> && m_metadata.channel_count == 3 && !m_raw) {
