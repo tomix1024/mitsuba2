@@ -16,9 +16,9 @@ enum class FilterType { Nearest, Trilinear };
 enum class WrapMode { Repeat, Mirror, Clamp };
 
 
-// Forward declaration of specialized GridVolumeConstrained
+// Forward declaration of specialized GridVolume
 template <typename Float, typename Spectrum, uint32_t Channels, bool Raw>
-class GridVolumeConstrainedImpl;
+class GridVolumeImpl;
 
 /**
  * Interpolated 3D grid texture of scalar or color values.
@@ -34,13 +34,13 @@ class GridVolumeConstrainedImpl;
  *     where (xpos, ypos, zpos, chan) denotes the lookup location.
  */
 template <typename Float, typename Spectrum>
-class GridVolumeConstrained final : public Volume<Float, Spectrum> {
+class GridVolume final : public Volume<Float, Spectrum> {
 public:
     MTS_IMPORT_BASE(Volume, m_world_to_local)
     MTS_IMPORT_TYPES()
 
-    GridVolumeConstrained(const Properties &props) : Base(props), m_props(props) {
-        std::string filter_type = props.string("filter_type", "nearest");
+    GridVolume(const Properties &props) : Base(props), m_props(props) {
+        std::string filter_type = props.string("filter_type", "trilinear");
         if (filter_type == "nearest")
             m_filter_type = FilterType::Nearest;
         else if (filter_type == "trilinear")
@@ -61,18 +61,24 @@ public:
                   "\"mirror\", or \"clamp\"!", wrap_mode);
 
 
-        auto [metadata, raw_data] = read_binary_volume_data<Float>(props.string("filename"));
+        auto [metadata, raw_data] = read_binary_volume_data<Float>(props.string("filename_volconstr"));
         m_metadata                = metadata;
         m_raw                     = props.bool_("raw", false);
         ScalarUInt32 size         = hprod(m_metadata.shape);
+
+        m_data = DynamicBuffer<Float>::copy(raw_data.get(), size * m_metadata.channel_count);
+
+        auto [metadata_values, raw_data_values] = read_binary_volume_data<Float>(props.string("filename_voldata"));
+        m_metadata_values                = metadata_values;
+        ScalarUInt32 size_values         = hprod(metadata_values.shape);
         // Apply spectral conversion if necessary
         if (is_spectral_v<Spectrum> && m_metadata.channel_count == 3 && !m_raw) {
-            ScalarFloat *ptr = raw_data.get();
-            auto scaled_data = std::unique_ptr<ScalarFloat[]>(new ScalarFloat[size * 4]);
+            ScalarFloat *ptr = raw_data_values.get();
+            auto scaled_data = std::unique_ptr<ScalarFloat[]>(new ScalarFloat[size_values * 4]);
             ScalarFloat *scaled_data_ptr = scaled_data.get();
             double mean = 0.0;
             ScalarFloat max = 0.0;
-            for (ScalarUInt32 i = 0; i < size; ++i) {
+            for (ScalarUInt32 i = 0; i < size_values; ++i) {
                 ScalarColor3f rgb = load_unaligned<ScalarColor3f>(ptr);
                 // TODO: Make this scaling optional if the RGB values are between 0 and 1
                 ScalarFloat scale = hmax(rgb) * 2.f;
@@ -84,25 +90,19 @@ public:
                 ptr += 3;
                 scaled_data_ptr += 4;
             }
-            m_metadata.mean = mean;
-            m_metadata.max = max;
-            m_data = DynamicBuffer<Float>::copy(scaled_data.get(), size * 4);
+            m_metadata_values.mean = mean;
+            m_metadata_values.max = max;
+            m_data_values = DynamicBuffer<Float>::copy(scaled_data.get(), size_values * 4);
         } else {
-            m_data = DynamicBuffer<Float>::copy(raw_data.get(), size * m_metadata.channel_count);
+            m_data_values = DynamicBuffer<Float>::copy(raw_data_values.get(), size_values * m_metadata_values.channel_count);
         }
-
-
-        auto [metadata_constr, raw_data_constr] = read_binary_volume_data<Float>(props.string("filename_constr"));
-        m_metadata_constr                = metadata_constr;
-        ScalarUInt32 size_constr         = hprod(metadata_constr.shape);
-        m_data_constr = DynamicBuffer<Float>::copy(raw_data_constr.get(), size_constr * m_metadata_constr.channel_count);
 
         // Mark values which are only used in the implementation class as queried
         props.mark_queried("use_grid_bbox");
         props.mark_queried("max_value");
     }
 
-    template <uint32_t Channels, bool Raw> using Impl = GridVolumeConstrainedImpl<Float, Spectrum, Channels, Raw>;
+    template <uint32_t Channels, bool Raw> using Impl = GridVolumeImpl<Float, Spectrum, Channels, Raw>;
 
     /**
      * Recursively expand into an implementation specialized to the actual loaded grid.
@@ -111,12 +111,12 @@ public:
         ref<Object> result;
         switch (m_metadata.channel_count) {
             case 1:
-                result = m_raw ? (Object *) new Impl<1, true>(m_props, m_metadata, m_data, m_metadata_constr, m_data_constr, m_filter_type, m_wrap_mode)
-                : (Object *) new Impl<1, false>(m_props, m_metadata, m_data, m_metadata_constr, m_data_constr, m_filter_type, m_wrap_mode);
+                result = m_raw ? (Object *) new Impl<1, true>(m_props, m_metadata, m_metadata_values, m_data, m_data_values, m_filter_type, m_wrap_mode)
+                : (Object *) new Impl<1, false>(m_props, m_metadata, m_metadata_values, m_data, m_data_values, m_filter_type, m_wrap_mode);
                 break;
             case 3:
-                result = m_raw ? (Object *) new Impl<3, true>(m_props, m_metadata, m_data, m_metadata_constr, m_data_constr, m_filter_type, m_wrap_mode)
-                : (Object *) new Impl<3, false>(m_props, m_metadata, m_data, m_metadata_constr, m_data_constr, m_filter_type, m_wrap_mode);
+                result = m_raw ? (Object *) new Impl<3, true>(m_props, m_metadata, m_metadata_values, m_data, m_data_values, m_filter_type, m_wrap_mode)
+                : (Object *) new Impl<3, false>(m_props, m_metadata, m_metadata_values, m_data, m_data_values, m_filter_type, m_wrap_mode);
                 break;
             default:
                 Throw("Unsupported channel count: %d (expected 1 or 3)", m_metadata.channel_count);
@@ -128,41 +128,40 @@ public:
 protected:
     bool m_raw;
     DynamicBuffer<Float> m_data;
-    DynamicBuffer<Float> m_data_constr;
+    DynamicBuffer<Float> m_data_values;
     VolumeMetadata m_metadata;
-    VolumeMetadata m_metadata_constr;
+    VolumeMetadata m_metadata_values;
     Properties m_props;
     FilterType m_filter_type;
     WrapMode m_wrap_mode;
 };
 
 template <typename Float, typename Spectrum, uint32_t Channels, bool Raw>
-class GridVolumeConstrainedImpl final : public Volume<Float, Spectrum> {
+class GridVolumeImpl final : public Volume<Float, Spectrum> {
 public:
     MTS_IMPORT_BASE(Volume, update_bbox, m_world_to_local)
     MTS_IMPORT_TYPES()
 
-    GridVolumeConstrainedImpl(const Properties &props, const VolumeMetadata &meta,
-               const DynamicBuffer<Float> &data,
-               const VolumeMetadata &meta_constr,
-               const DynamicBuffer<Float> &data_constr,
+    GridVolumeImpl(const Properties &props, const VolumeMetadata &meta, const VolumeMetadata &meta_values,
+                   const DynamicBuffer<Float> &data, const DynamicBuffer<Float> &data_values,
                FilterType filter_type,
                WrapMode wrap_mode)
         : Base(props),
             m_data(data),
-            m_data_constr(data_constr),
+            m_data_values(data_values),
             m_metadata(meta),
-            m_metadata_constr(meta_constr),
-            m_inv_resolution_x((int) m_metadata_constr.shape.x()),
-            m_inv_resolution_y((int) m_metadata_constr.shape.y()),
-            m_inv_resolution_z((int) m_metadata_constr.shape.z()),
+            m_metadata_values(meta_values),
+            m_inv_resolution_x((int) m_metadata.shape.x()),
+            m_inv_resolution_y((int) m_metadata.shape.y()),
+            m_inv_resolution_z((int) m_metadata.shape.z()),
             m_filter_type(filter_type), m_wrap_mode(wrap_mode){
 
 
 
         m_size     = hprod(m_metadata.shape);
+        m_size_values     = hprod(m_metadata_values.shape);
         if (props.bool_("use_grid_bbox", false)) {
-            m_world_to_local = m_metadata_constr.transform * m_world_to_local;
+            m_world_to_local = m_metadata.transform * m_world_to_local;
             update_bbox();
         }
 
@@ -170,8 +169,6 @@ public:
             m_fixed_max    = true;
             m_metadata.max = props.float_("max_value");
         }
-
-        m_data_constr = detach(m_data_constr);  // TODO test this (the idea is that this gets ignored in the gradient tree)
     }
 
     UnpolarizedSpectrum eval(const Interaction3f &it, Mask active) const override {
@@ -179,11 +176,11 @@ public:
         ENOKI_MARK_USED(active);
 
         if constexpr (Channels == 3 && is_spectral_v<Spectrum> && Raw) {
-            Throw("The GridVolumeConstrained texture %s was queried for a spectrum, but texture conversion "
+            Throw("The GridVolume texture %s was queried for a spectrum, but texture conversion "
                   "into spectra was explicitly disabled! (raw=true)",
                   to_string());
         } else if constexpr (Channels != 3 && Channels != 1) {
-            Throw("The GridVolumeConstrained texture %s was queried for a spectrum, but has a number of channels "
+            Throw("The GridVolume texture %s was queried for a spectrum, but has a number of channels "
                   "which is not 1 or 3",
                   to_string());
         } else {
@@ -203,7 +200,7 @@ public:
         ENOKI_MARK_USED(active);
 
         if constexpr (Channels == 3 && is_spectral_v<Spectrum> && !Raw) {
-            Throw("eval_1(): The GridVolumeConstrained texture %s was queried for a scalar value, but texture "
+            Throw("eval_1(): The GridVolume texture %s was queried for a scalar value, but texture "
                   "conversion into spectra was requested! (raw=false)",
                   to_string());
         } else {
@@ -220,10 +217,10 @@ public:
         ENOKI_MARK_USED(active);
 
         if constexpr (Channels != 3) {
-            Throw("eval_3(): The GridVolumeConstrained texture %s was queried for a 3D vector, but it has "
+            Throw("eval_3(): The GridVolume texture %s was queried for a 3D vector, but it has "
                   "only a single channel!", to_string());
         } else if constexpr (is_spectral_v<Spectrum> && !Raw) {
-            Throw("eval_3(): The GridVolumeConstrained texture %s was queried for a 3D vector, but texture "
+            Throw("eval_3(): The GridVolume texture %s was queried for a 3D vector, but texture "
                   "conversion into spectra was requested! (raw=false)",
                   to_string());
         } else {
@@ -247,17 +244,17 @@ public:
 
     template <typename T> T wrap(const T &value) const {
         if (m_wrap_mode == WrapMode::Clamp) {
-            return clamp(value, 0, m_metadata_constr.shape - 1);
+            return clamp(value, 0, m_metadata.shape - 1);
         } else {
             T div = T(m_inv_resolution_x(value.x()),
                       m_inv_resolution_y(value.y()),
                       m_inv_resolution_z(value.z())),
-                      mod = value - div * m_metadata_constr.shape;
+              mod = value - div * m_metadata.shape;
 
-            masked(mod, mod < 0) += T(m_metadata_constr.shape);
+            masked(mod, mod < 0) += T(m_metadata.shape);
 
             if (m_wrap_mode == WrapMode::Mirror)
-                mod = select(eq(div & 1, 0) ^ (value < 0), mod, m_metadata_constr.shape - 1 - mod);
+                mod = select(eq(div & 1, 0) ^ (value < 0), mod, m_metadata.shape - 1 - mod);
 
             return mod;
         }
@@ -279,8 +276,8 @@ public:
         if constexpr (!is_array_v<Mask>)
             active = true;
 
-        const uint32_t nx = m_metadata_constr.shape.x();
-        const uint32_t ny = m_metadata_constr.shape.y();
+        const uint32_t nx = m_metadata.shape.x();
+        const uint32_t ny = m_metadata.shape.y();
 
         if (m_filter_type == FilterType::Trilinear) {
             using Int8  = Array<Int32, 8>;
@@ -288,7 +285,7 @@ public:
 
 
             // Scale to bitmap resolution and apply shift
-            p = fmadd(p, m_metadata_constr.shape, -.5f);
+            p = fmadd(p, m_metadata.shape, -.5f);
 
             // Integer pixel positions for trilinear interpolation
             Vector3i p_i  = enoki::floor2int<Vector3i>(p);
@@ -302,22 +299,25 @@ public:
                                       Int8(0, 0, 0, 0, 1, 1, 1, 1) + p_i.z()));
 
             // (z * ny + y) * nx + x
-            //Int8 index = fmadd(fmadd(pi_i_w.z(), ny, pi_i_w.y()), nx, pi_i_w.x());
             Int8 constr_index = fmadd(fmadd(pi_i_w.z(), ny, pi_i_w.y()), nx, pi_i_w.x());
+
             Int8 index = Int8(0,0,0,0,0,0,0,0);
             for (int i = 0; i < 8; i++) {
-                index[i] = enoki::floor2int<Int32>(gather<StorageType>(m_data_constr, constr_index[i], active)[0]);  // read index from constraint volume file to get real index in data volume file
+                index[i] = enoki::floor2int<Int32>(gather<StorageType>(m_data, constr_index[i], active)[0]);  // read index from constraint volume file to get real index in data volume file
+                //std::cout << m_data << std::endl;
             }
 
             // Load 8 grid positions to perform trilinear interpolation
-            auto d000 = gather<StorageType>(m_data, index[0], active),
-                 d100 = gather<StorageType>(m_data, index[1], active),
-                 d010 = gather<StorageType>(m_data, index[2], active),
-                 d110 = gather<StorageType>(m_data, index[3], active),
-                 d001 = gather<StorageType>(m_data, index[4], active),
-                 d101 = gather<StorageType>(m_data, index[5], active),
-                 d011 = gather<StorageType>(m_data, index[6], active),
-                 d111 = gather<StorageType>(m_data, index[7], active);
+            auto d000 = gather<StorageType>(m_data_values, index[0], active),
+            d100 = gather<StorageType>(m_data_values, index[1], active),
+            d010 = gather<StorageType>(m_data_values, index[2], active),
+            d110 = gather<StorageType>(m_data_values, index[3], active),
+            d001 = gather<StorageType>(m_data_values, index[4], active),
+            d101 = gather<StorageType>(m_data_values, index[5], active),
+            d011 = gather<StorageType>(m_data_values, index[6], active),
+            d111 = gather<StorageType>(m_data_values, index[7], active);
+
+            //std::cout << gather<StorageType>(m_data, Int32(1), active) << std::endl;
 
             ResultType v000, v001, v010, v011, v100, v101, v110, v111;
             Float scale = 1.f;
@@ -357,19 +357,20 @@ public:
             if constexpr (uses_srgb_model)
                 result *= scale;
 
+            //result = ResultType(0.99);
             return result;
         } else {
             // Scale to volume resolution, no shift
-            p *= m_metadata_constr.shape;
+            p *= m_metadata.shape;
 
             // Integer voxel positions for lookup
             Vector3i p_i   = floor2int<Vector3i>(p),
                     p_i_w = wrap(p_i);
 
             Int32 constr_index = fmadd(fmadd(p_i_w.z(), ny, p_i_w.y()), nx, p_i_w.x());
-            Int32 index = enoki::floor2int<Int32>(gather<StorageType>(m_data_constr, constr_index, active)[0]);  // read index from constraint volume file to get real index in data volume file
+            Int32 index = enoki::floor2int<Int32>(gather<StorageType>(m_data, constr_index, active)[0]);  // read index from constraint volume file to get real index in data volume file
 
-            StorageType v = gather<StorageType>(m_data, index, active);
+            StorageType v = gather<StorageType>(m_data_values, index, active);
 
             if constexpr (uses_srgb_model)
                 return v.w() * srgb_model_eval<UnpolarizedSpectrum>(head<3>(v), wavelengths);
@@ -380,22 +381,23 @@ public:
     }
 
     ScalarFloat max() const override { return m_metadata.max; }
-    ScalarVector3i resolution() const override { return m_metadata_constr.shape; };
+    ScalarVector3i resolution() const override { return m_metadata.shape; };
     auto data_size() const { return m_data.size(); }
 
     void traverse(TraversalCallback *callback) override {
         callback->put_parameter("data", m_data);
+        callback->put_parameter("data_values", m_data_values);
         callback->put_parameter("size", m_size);
+        callback->put_parameter("size_values", m_size_values);
         Base::traverse(callback);
     }
 
     void parameters_changed(const std::vector<std::string> &/*keys*/) override {
         auto new_size = data_size();
-        std::cout << "WARN: PARAMS CHANGED" << std::endl;
         if (m_size != new_size) {
             // Only support a special case: resolution doubling along all axes
             if (new_size != m_size * 8)
-                Throw("Unsupported GridVolumeConstrained data size update: %d -> %d. Expected %d or %d "
+                Throw("Unsupported GridVolume data size update: %d -> %d. Expected %d or %d "
                       "(doubling "
                       "the resolution).",
                       m_size, new_size, m_size, m_size * 8);
@@ -413,9 +415,9 @@ public:
 
     std::string to_string() const override {
         std::ostringstream oss;
-        oss << "GridVolumeConstrained[" << std::endl
+        oss << "GridVolume[" << std::endl
             << "  world_to_local = " << m_world_to_local << "," << std::endl
-            << "  dimensions = " << m_metadata_constr.shape << "," << std::endl
+            << "  dimensions = " << m_metadata.shape << "," << std::endl
             << "  mean = " << m_metadata.mean << "," << std::endl
             << "  max = " << m_metadata.max << "," << std::endl
             << "  channels = " << m_metadata.channel_count << std::endl
@@ -426,44 +428,45 @@ public:
     MTS_DECLARE_CLASS()
 protected:
     DynamicBuffer<Float> m_data;
-    DynamicBuffer<Float> m_data_constr;
+    DynamicBuffer<Float> m_data_values;
     bool m_fixed_max = false;
     VolumeMetadata m_metadata;
-    VolumeMetadata m_metadata_constr;
+    VolumeMetadata m_metadata_values;
     enoki::divisor<int32_t> m_inv_resolution_x, m_inv_resolution_y, m_inv_resolution_z;
 
     ScalarUInt32 m_size;
+    ScalarUInt32 m_size_values;
     FilterType m_filter_type;
     WrapMode m_wrap_mode;
 };
 
-MTS_IMPLEMENT_CLASS_VARIANT(GridVolumeConstrained, Volume)
-MTS_EXPORT_PLUGIN(GridVolumeConstrained, "GridVolumeConstrained texture")
+MTS_IMPLEMENT_CLASS_VARIANT(GridVolume, Volume)
+MTS_EXPORT_PLUGIN(GridVolume, "GridVolume texture")
 
 NAMESPACE_BEGIN(detail)
 template <uint32_t Channels, bool Raw>
 constexpr const char * gridvolume_class_name() {
     if constexpr (!Raw) {
         if constexpr (Channels == 1)
-            return "GridVolumeConstrainedImpl_1_0";
+            return "GridVolumeImpl_1_0";
         else
-            return "GridVolumeConstrainedImpl_3_0";
+            return "GridVolumeImpl_3_0";
     } else {
         if constexpr (Channels == 1)
-            return "GridVolumeConstrainedImpl_1_1";
+            return "GridVolumeImpl_1_1";
         else
-            return "GridVolumeConstrainedImpl_3_1";
+            return "GridVolumeImpl_3_1";
     }
 }
 NAMESPACE_END(detail)
 
 template <typename Float, typename Spectrum, uint32_t Channels, bool Raw>
-Class *GridVolumeConstrainedImpl<Float, Spectrum, Channels, Raw>::m_class
+Class *GridVolumeImpl<Float, Spectrum, Channels, Raw>::m_class
     = new Class(detail::gridvolume_class_name<Channels, Raw>(), "Volume",
                 ::mitsuba::detail::get_variant<Float, Spectrum>(), nullptr, nullptr);
 
 template <typename Float, typename Spectrum, uint32_t Channels, bool Raw>
-const Class* GridVolumeConstrainedImpl<Float, Spectrum, Channels, Raw>::class_() const {
+const Class* GridVolumeImpl<Float, Spectrum, Channels, Raw>::class_() const {
     return m_class;
 }
 
