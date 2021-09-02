@@ -391,7 +391,7 @@ public:
 
     void parameters_changed(const std::vector<std::string> &/*keys*/) override {
         auto new_size = data_size();
-        std::cout << "WARN: PARAMS CHANGED" << std::endl;
+        //std::cout << "WARN: PARAMS CHANGED" << std::endl;
         if (m_size != new_size) {
             // Only support a special case: resolution doubling along all axes
             if (new_size != m_size * 8)
