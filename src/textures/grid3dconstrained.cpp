@@ -92,10 +92,10 @@ public:
         }
 
 
-        auto [metadata_constr, raw_data_constr] = read_binary_volume_data<Float>(props.string("filename_constr"));
+        auto [metadata_constr, raw_data_constr] = read_binary_volume_data<Int32>(props.string("filename_constr"));
         m_metadata_constr                = metadata_constr;
         ScalarUInt32 size_constr         = hprod(metadata_constr.shape);
-        m_data_constr = DynamicBuffer<Float>::copy(raw_data_constr.get(), size_constr * m_metadata_constr.channel_count);
+        m_data_constr = DynamicBuffer<Int32>::copy(raw_data_constr.get(), size_constr * m_metadata_constr.channel_count);
 
         // Mark values which are only used in the implementation class as queried
         props.mark_queried("use_grid_bbox");
@@ -128,7 +128,7 @@ public:
 protected:
     bool m_raw;
     DynamicBuffer<Float> m_data;
-    DynamicBuffer<Float> m_data_constr;
+    DynamicBuffer<Int32> m_data_constr;
     VolumeMetadata m_metadata;
     VolumeMetadata m_metadata_constr;
     Properties m_props;
@@ -145,7 +145,7 @@ public:
     GridVolumeConstrainedImpl(const Properties &props, const VolumeMetadata &meta,
                const DynamicBuffer<Float> &data,
                const VolumeMetadata &meta_constr,
-               const DynamicBuffer<Float> &data_constr,
+               const DynamicBuffer<Int32> &data_constr,
                FilterType filter_type,
                WrapMode wrap_mode)
         : Base(props),
@@ -171,7 +171,7 @@ public:
             m_metadata.max = props.float_("max_value");
         }
 
-        m_data_constr = detach(m_data_constr);  // TODO test this (the idea is that this gets ignored in the gradient tree)
+        //m_data_constr = detach(m_data_constr);  // TODO test this (the idea is that this gets ignored in the gradient tree)
     }
 
     UnpolarizedSpectrum eval(const Interaction3f &it, Mask active) const override {
@@ -274,6 +274,7 @@ public:
                                 Mask active) const {
         constexpr bool uses_srgb_model = is_spectral_v<Spectrum> && !Raw && Channels == 3;
         using StorageType = std::conditional_t<uses_srgb_model, Array<Float, 4>, Array<Float, Channels>>;
+        using StorageTypeInt = std::conditional_t<uses_srgb_model, Array<Int32, 4>, Array<Int32, Channels>>;
         using ResultType = std::conditional_t<uses_srgb_model, UnpolarizedSpectrum, StorageType>;
 
         if constexpr (!is_array_v<Mask>)
@@ -306,7 +307,7 @@ public:
             Int8 constr_index = fmadd(fmadd(pi_i_w.z(), ny, pi_i_w.y()), nx, pi_i_w.x());
             Int8 index = Int8(0,0,0,0,0,0,0,0);
             for (int i = 0; i < 8; i++) {
-                index[i] = enoki::floor2int<Int32>(gather<StorageType>(m_data_constr, constr_index[i], active)[0]);  // read index from constraint volume file to get real index in data volume file
+                index[i] = /*enoki::floor2int<Int32>(*/gather<StorageTypeInt>(m_data_constr, constr_index[i], active)[0];  // read index from constraint volume file to get real index in data volume file
             }
 
             // Load 8 grid positions to perform trilinear interpolation
@@ -367,7 +368,7 @@ public:
                     p_i_w = wrap(p_i);
 
             Int32 constr_index = fmadd(fmadd(p_i_w.z(), ny, p_i_w.y()), nx, p_i_w.x());
-            Int32 index = enoki::floor2int<Int32>(gather<StorageType>(m_data_constr, constr_index, active)[0]);  // read index from constraint volume file to get real index in data volume file
+            Int32 index = /*enoki::floor2int<Int32>(*/gather<StorageTypeInt>(m_data_constr, constr_index, active)[0];  // read index from constraint volume file to get real index in data volume file
 
             StorageType v = gather<StorageType>(m_data, index, active);
 
@@ -426,7 +427,7 @@ public:
     MTS_DECLARE_CLASS()
 protected:
     DynamicBuffer<Float> m_data;
-    DynamicBuffer<Float> m_data_constr;
+    DynamicBuffer<Int32> m_data_constr;
     bool m_fixed_max = false;
     VolumeMetadata m_metadata;
     VolumeMetadata m_metadata_constr;
