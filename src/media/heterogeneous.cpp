@@ -31,11 +31,12 @@ public:
     }
 
     UnpolarizedSpectrum
-    get_combined_extinction(const MediumInteraction3f & /* mi */,
+    get_combined_extinction(const MediumInteraction3f &mi,
                             Mask active) const override {
         // TODO: This could be a spectral quantity (at least in RGB mode)
         MTS_MASKED_FUNCTION(ProfilerPhase::MediumEvaluate, active);
-        return m_scale * m_sigmat->max();
+        //return m_scale * m_sigmat->max();
+        return m_sigmat->eval(mi, active) * m_scale;
     }
 
     std::tuple<UnpolarizedSpectrum, UnpolarizedSpectrum, UnpolarizedSpectrum>
@@ -44,7 +45,7 @@ public:
         MTS_MASKED_FUNCTION(ProfilerPhase::MediumEvaluate, active);
         auto sigmat = m_scale * m_sigmat->eval(mi, active);
         auto sigmas = sigmat * m_albedo->eval(mi, active);
-        auto sigman = get_combined_extinction(mi, active) - sigmat;
+        auto sigman = m_sigmat->max() * m_scale - sigmat;
         return { sigmas, sigman, sigmat };
     }
 

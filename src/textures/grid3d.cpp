@@ -174,7 +174,6 @@ public:
                   to_string());
         } else {
             auto result = eval_impl(it, active);
-
             if constexpr (Channels == 3 && is_monochromatic_v<Spectrum>)
                 return mitsuba::luminance(Color3f(result));
             else if constexpr (Channels == 1)
@@ -219,10 +218,14 @@ public:
 
     MTS_INLINE auto eval_impl(const Interaction3f &it, Mask active) const {
         MTS_MASKED_FUNCTION(ProfilerPhase::TextureEvaluate, active);
-
         using StorageType = Array<Float, Channels>;
         constexpr bool uses_srgb_model = is_spectral_v<Spectrum> && !Raw && Channels == 3;
         using ResultType = std::conditional_t<uses_srgb_model, UnpolarizedSpectrum, StorageType>;
+
+        if (count(it.is_valid()) == 0) {
+            //std::cout << "overridden due to invalid ray" << std::endl;
+            return ResultType(1.0); // TODO this is obviously incorrect, 0 causes no valid interactions at all
+        }
 
         auto p = m_world_to_local * it.p;
         if (none_or<false>(active))
