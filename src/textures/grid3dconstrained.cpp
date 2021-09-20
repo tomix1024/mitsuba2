@@ -238,6 +238,11 @@ public:
         constexpr bool uses_srgb_model = is_spectral_v<Spectrum> && !Raw && Channels == 3;
         using ResultType = std::conditional_t<uses_srgb_model, UnpolarizedSpectrum, StorageType>;
 
+        if (count(it.is_valid()) == 0) {
+            //std::cout << "overridden due to invalid ray" << std::endl;
+            return ResultType(1.0); // TODO this is obviously incorrect, 0 causes no valid interactions at all
+        }
+
         auto p = m_world_to_local * it.p;
         if (none_or<false>(active))
             return zero<ResultType>();
