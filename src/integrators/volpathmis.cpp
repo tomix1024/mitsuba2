@@ -165,6 +165,8 @@ public:
 
             if (any_or<true>(active_medium)) {
                 mi = medium->sample_interaction(ray, sampler->next_1d(active_medium), channel, active_medium);
+                //std::cout << "sample" << std::endl;
+                //std::cout << mi.combined_extinction << std::endl;
                 masked(ray.maxt, active_medium && medium->is_homogeneous() && mi.is_valid()) = mi.t;
                 Mask intersect = needs_intersection && active_medium;
                 if (any_or<true>(intersect))
@@ -181,6 +183,7 @@ public:
                 active_medium &= mi.is_valid();
                 is_spectral &= active_medium;
                 not_spectral &= active_medium;
+                //std::cout << any_or<true>(active_medium) << std::endl;
             }
 
             if (any_or<true>(active_medium)) {
@@ -364,6 +367,8 @@ public:
 
             if (any_or<true>(active_medium)) {
                 auto mi = medium->sample_interaction(ray, sampler->next_1d(active_medium), channel, active_medium);
+                //std::cout << mi.combined_extinction << std::endl;
+                //std::cout << "sample emitter" << std::endl;
                 masked(ray.maxt, active_medium && medium->is_homogeneous() && mi.is_valid()) = min(mi.t, remaining_dist);
                 Mask intersect = needs_intersection && active_medium;
                 if (any_or<true>(intersect))
@@ -388,6 +393,7 @@ public:
                 active_medium &= mi.is_valid();
                 is_spectral &= active_medium;
                 not_spectral &= active_medium;
+                //std::cout << any_or<true>(active_medium) << std::endl;
 
                 masked(total_dist, active_medium) += mi.t;
 

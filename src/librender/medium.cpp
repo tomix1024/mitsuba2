@@ -52,8 +52,8 @@ Medium<Float, Spectrum>::sample_interaction(const Ray3f &ray, Float sample,
 
     mint = max(ray.mint, mint);
     maxt = min(ray.maxt, maxt);
-
-    auto combined_extinction = get_combined_extinction(mi, active);
+    mi.p            = ray(mint);
+    auto combined_extinction = get_combined_extinction(mi, active); // get an initial combined extinction (based on maximum sigma_t) to have an m, recompute later when an actual interaction was found
     Float m                  = combined_extinction[0];
     if constexpr (is_rgb_v<Spectrum>) { // Handle RGB rendering
         masked(m, eq(channel, 1u)) = combined_extinction[1];
@@ -68,6 +68,7 @@ Medium<Float, Spectrum>::sample_interaction(const Ray3f &ray, Float sample,
     mi.p            = ray(sampled_t);
     mi.medium       = this;
     mi.mint         = mint;
+    combined_extinction = get_combined_extinction(mi, active); // load actual combined extinction at interaction point
     std::tie(mi.sigma_s, mi.sigma_n, mi.sigma_t) =
         get_scattering_coefficients(mi, valid_mi);
     mi.combined_extinction = combined_extinction;

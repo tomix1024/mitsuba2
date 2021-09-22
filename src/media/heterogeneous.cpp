@@ -36,6 +36,12 @@ public:
         // TODO: This could be a spectral quantity (at least in RGB mode)
         MTS_MASKED_FUNCTION(ProfilerPhase::MediumEvaluate, active);
         //return m_scale * m_sigmat->max();
+        /*std::cout << "get_combined_extinction start" << std::endl;
+        std::cout << mi.is_valid() << std::endl;
+        std::cout << mi << std::endl;
+        std::cout << mi.p << std::endl;
+        std::cout << any_or<true>(mi.is_valid()) << std::endl;
+        std::cout << "get_combined_extinction end" << std::endl;*/
         return m_sigmat->eval(mi, active) * m_scale;
     }
 
@@ -45,7 +51,7 @@ public:
         MTS_MASKED_FUNCTION(ProfilerPhase::MediumEvaluate, active);
         auto sigmat = m_scale * m_sigmat->eval(mi, active);
         auto sigmas = sigmat * m_albedo->eval(mi, active);
-        auto sigman = m_sigmat->max() * m_scale - sigmat;
+        auto sigman = get_combined_extinction(mi, active) - sigmat;//0.f;//m_sigmat->max() * m_scale - sigmat;
         return { sigmas, sigman, sigmat };
     }
 
