@@ -51,7 +51,7 @@ public:
         MTS_MASKED_FUNCTION(ProfilerPhase::MediumEvaluate, active);
         auto sigmat = m_scale * m_sigmat->eval(mi, active);
         auto sigmas = sigmat * m_albedo->eval(mi, active);
-        auto sigman = get_combined_extinction(mi, active) - sigmat;//0.f;//m_sigmat->max() * m_scale - sigmat;
+        auto sigman = get_combined_extinction(mi, active) - sigmat;//0.f;//m_sigmat->max() * m_scale - sigmat; // TODO this should be max again, check if that still works
         return { sigmas, sigman, sigmat };
     }
 
