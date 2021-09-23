@@ -385,10 +385,10 @@ public:
             m_size = (ScalarUInt32) new_size;
         }
 
-        auto sum = hsum(hsum(detach(m_data)));
+        auto sum = hsum(hsum(m_data));
         m_metadata.mean = (double) enoki::slice(sum, 0) / (double) (m_size * 3);
         if (!m_fixed_max) {
-            auto maximum = hmax(hmax(detach(m_data)));
+            auto maximum = hmax_nested(m_data);
             m_metadata.max = slice(maximum, 0);
         }
     }

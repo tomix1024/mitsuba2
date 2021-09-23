@@ -385,7 +385,9 @@ public:
         }
     }
 
-    ScalarFloat max() const override { return m_metadata.max; }
+    ScalarFloat max() const override {
+        return m_metadata.max;
+    }
     ScalarVector3i resolution() const override { return m_metadata_constr.shape; };
     auto data_size() const { return m_data.size(); }
 
@@ -409,10 +411,16 @@ public:
             m_size = (ScalarUInt32) new_size;
         }
 
-        auto sum = hsum(hsum(detach(m_data)));
+        auto sum = hsum(hsum(m_data));
         m_metadata.mean = (double) enoki::slice(sum, 0) / (double) (m_size * 3);
         if (!m_fixed_max) {
-            auto maximum = hmax(hmax(detach(m_data)));
+            /*auto maximum = 0.f;
+            for (auto d : m_data) {
+                if (d > maximum) {
+                    maximum = d;
+                }
+            }*/
+            auto maximum = hmax_nested(m_data);
             m_metadata.max = slice(maximum, 0);
         }
     }

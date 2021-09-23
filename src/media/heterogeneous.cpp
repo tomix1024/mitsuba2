@@ -42,7 +42,14 @@ public:
         std::cout << mi.p << std::endl;
         std::cout << any_or<true>(mi.is_valid()) << std::endl;
         std::cout << "get_combined_extinction end" << std::endl;*/
-        return m_sigmat->eval(mi, active) * m_scale;
+        //return m_sigmat->eval(mi, active) * m_scale;
+        return get_max_sigmat(mi, active);
+    }
+
+    UnpolarizedSpectrum
+    get_max_sigmat(const MediumInteraction3f &mi,
+                            Mask active) const override {
+        return m_sigmat->max() * m_scale;
     }
 
     std::tuple<UnpolarizedSpectrum, UnpolarizedSpectrum, UnpolarizedSpectrum>
@@ -51,7 +58,7 @@ public:
         MTS_MASKED_FUNCTION(ProfilerPhase::MediumEvaluate, active);
         auto sigmat = m_scale * m_sigmat->eval(mi, active);
         auto sigmas = sigmat * m_albedo->eval(mi, active);
-        auto sigman = m_sigmat->max() * m_scale - sigmat;//0.f;//m_sigmat->max() * m_scale - sigmat; // TODO this should be max again, check if that still works
+        auto sigman = get_combined_extinction(mi, active) - sigmat;//0.f;//m_sigmat->max() * m_scale - sigmat; // TODO this should be max again, check if that still works
         return { sigmas, sigman, sigmat };
     }
 

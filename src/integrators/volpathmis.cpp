@@ -187,9 +187,16 @@ public:
             }
 
             if (any_or<true>(active_medium)) {
-                Mask null_scatter = sampler->next_1d(active_medium) >= index_spectrum(mi.sigma_t, channel) / index_spectrum(mi.combined_extinction, channel);
+                auto next1d = sampler->next_1d(active_medium);
+                auto sigmat = index_spectrum(mi.sigma_t, channel);
+                auto combined = index_spectrum(mi.combined_extinction, channel);
+                auto ratio = sigmat / combined;
+                Mask null_scatter = next1d >= ratio;
                 act_null_scatter |= null_scatter && active_medium;
                 act_medium_scatter |= !act_null_scatter && active_medium;
+                //std::cout << "next1d " << next1d << " sigmat " << sigmat << " combined " << combined <<  " ratio " << ratio << " null_scatter " << act_null_scatter << " medium_scatter " << act_medium_scatter << std::endl;
+
+
 
                 // Count this as a bounce
                 masked(depth, act_medium_scatter) += 1;
@@ -200,7 +207,7 @@ public:
                 act_medium_scatter &= active;
                 specular_chain = specular_chain && !(act_medium_scatter && sample_emitters);
 
-
+                //std::cout << "nullscatter " << any_or<true>(act_null_scatter) << std::endl;
                 if (any_or<true>(act_null_scatter)) {
                     if (any_or<true>(is_spectral)) {
                         update_weights(p_over_f, mi.sigma_n / mi.combined_extinction, mi.sigma_n, channel, is_spectral && act_null_scatter);
@@ -216,6 +223,7 @@ public:
                     masked(si.t, act_null_scatter) = si.t - mi.t;
                 }
 
+                //std::cout << "mediumscatter " << any_or<true>(act_medium_scatter) << std::endl;
                 if (any_or<true>(act_medium_scatter)) {
                     if (any_or<true>(is_spectral))
                         update_weights(p_over_f, mi.sigma_t / mi.combined_extinction, mi.sigma_s, channel, is_spectral && act_medium_scatter);
