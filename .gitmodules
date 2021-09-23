@@ -27,7 +27,7 @@
     url = https://github.com/pybind/pybind11
 [submodule "ext/enoki"]
     path = ext/enoki
-    url = https://github.com/mitsuba-renderer/enoki
+    url = https://github.com/mbks/enoki
 [submodule "ext/nanogui"]
     path = ext/nanogui
     url = https://github.com/mitsuba-renderer/nanogui
