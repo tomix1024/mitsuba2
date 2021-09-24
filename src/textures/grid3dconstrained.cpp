@@ -161,6 +161,18 @@ public:
 
 
         m_size     = hprod(m_metadata.shape);
+
+        using StorageType = Array<Float, Channels>;
+        auto maximum = gather<StorageType>(m_data, Int32(0), Mask(true))[0];
+        m_max_index = 0;
+        for (ScalarUInt32 i = 0; i < m_size; i++) {
+            auto data = gather<StorageType>(m_data, Int32(i), Mask(true))[0];
+            maximum = enoki::max(data, maximum);
+            if (maximum == data) {
+                m_max_index = i;
+            }
+        }
+
         if (props.bool_("use_grid_bbox", false)) {
             m_world_to_local = m_metadata_constr.transform * m_world_to_local;
             update_bbox();
@@ -398,7 +410,9 @@ public:
     }
 
     UnpolarizedSpectrum max2(const Interaction3f &si, Mask active) const override {
-        return hmax_nested(m_data);
+        using StorageType = Array<Float, Channels>;
+        //std::cout << m_max_index << std::endl;
+        return gather<StorageType>(m_data, Int32(m_max_index), active)[0];
     }
 
     ScalarFloat sum() const override {
@@ -416,6 +430,7 @@ public:
     }
 
     void parameters_changed(const std::vector<std::string> &/*keys*/) override {
+        using StorageType = Array<Float, Channels>;
         auto new_size = data_size();
         //std::cout << "WARN: PARAMS CHANGED" << std::endl;
         if (m_size != new_size) {
@@ -432,13 +447,16 @@ public:
         auto sum = hsum(hsum(m_data));
         m_metadata.mean = (double) enoki::slice(sum, 0) / (double) (m_size * 3);
         if (!m_fixed_max) {
-            /*auto maximum = 0.f;
-            for (auto d : m_data) {
-                if (d > maximum) {
-                    maximum = d;
+            auto maximum = gather<StorageType>(m_data, Int32(0), Mask(true))[0];
+            m_max_index = 0;
+            for (ScalarUInt32 i = 0; i < m_size; i++) {
+                auto data = gather<StorageType>(m_data, Int32(i), Mask(true))[0];
+                maximum = enoki::max(data, maximum);
+                if (maximum == data) {
+                    m_max_index = i;
                 }
-            }*/
-            auto maximum = hmax_nested(m_data);
+            }
+            //auto maximum = hmax_nested(m_data);
             m_metadata.max = slice(maximum, 0);
         }
     }
@@ -465,6 +483,7 @@ protected:
     enoki::divisor<int32_t> m_inv_resolution_x, m_inv_resolution_y, m_inv_resolution_z;
 
     ScalarUInt32 m_size;
+    ScalarUInt32 m_max_index;
     FilterType m_filter_type;
     WrapMode m_wrap_mode;
 };
