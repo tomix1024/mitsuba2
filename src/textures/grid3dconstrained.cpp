@@ -386,7 +386,19 @@ public:
     }
 
     ScalarFloat max() const override {
+        //using StorageType = Array<Float, Channels>;
+        /*using StorageType = Array<Float, Channels>;
+        auto max_val = gather<StorageType>(m_data, 0, true)[0];
+        for (int32_t i = 1; i < hprod(m_metadata.shape); i++) {
+            auto data = gather<StorageType>(m_data, i, true)[0];
+            max_val = enoki::max(data, max_val);
+        }*/
+        //auto max_final = slice(gather<StorageType>(m_data, 0, true)[0], 0);
         return m_metadata.max;
+    }
+
+    UnpolarizedSpectrum max2(const Interaction3f &si, Mask active) const override {
+        return hmax_nested(m_data);
     }
 
     ScalarFloat sum() const override {

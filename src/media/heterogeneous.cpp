@@ -43,7 +43,7 @@ public:
         std::cout << any_or<true>(mi.is_valid()) << std::endl;
         std::cout << "get_combined_extinction end" << std::endl;*/
         //return m_sigmat->eval(mi, active) * m_scale;
-        return m_sigmat->sum() * m_scale;//get_max_sigmat(mi, active);
+        return m_sigmat->max2(mi, active) * m_scale;//get_max_sigmat(mi, active);
     }
 
     UnpolarizedSpectrum

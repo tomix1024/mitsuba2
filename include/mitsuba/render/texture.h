@@ -234,6 +234,9 @@ public:
     /// Returns the maximum value of the texture over all dimensions.
     virtual ScalarFloat max() const;
 
+    /// Evaluate the texture at the given surface interaction, with color processing.
+    virtual UnpolarizedSpectrum max2(const Interaction3f &si, Mask active = true) const;
+
     /// Returns the sum value of the texture over all dimensions.
     virtual ScalarFloat sum() const;
 
