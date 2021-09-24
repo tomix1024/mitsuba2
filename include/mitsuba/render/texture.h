@@ -234,6 +234,9 @@ public:
     /// Returns the maximum value of the texture over all dimensions.
     virtual ScalarFloat max() const;
 
+    /// Returns the sum value of the texture over all dimensions.
+    virtual ScalarFloat sum() const;
+
     /// Returns the bounding box of the 3d texture
     ScalarBoundingBox3f bbox() const { return m_bbox; }
 

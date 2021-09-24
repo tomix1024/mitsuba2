@@ -363,6 +363,12 @@ public:
     }
 
     ScalarFloat max() const override { return m_metadata.max; }
+
+    ScalarFloat sum() const override {
+        auto sum = hsum(hsum(m_data));
+        return slice(sum, 0);
+    }
+    
     ScalarVector3i resolution() const override { return m_metadata.shape; };
     auto data_size() const { return m_data.size(); }
 
