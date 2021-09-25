@@ -436,7 +436,7 @@ public:
         auto sum = hsum(hsum(m_data));
         m_metadata.mean = (double) enoki::slice(sum, 0) / (double) (m_size * 3);
         if (!m_fixed_max) {
-            auto maximum = gather<StorageType>(m_data, Int32(0), Mask(true))[0];
+            /*auto maximum = gather<StorageType>(m_data, Int32(0), Mask(true))[0];
             m_max_index = 0;
             for (ScalarUInt32 i = 0; i < m_size; i++) {
                 auto data = gather<StorageType>(m_data, Int32(i), Mask(true))[0];
@@ -444,8 +444,9 @@ public:
                 if (maximum == data) {
                     m_max_index = i;
                 }
-            }
-            //auto maximum = hmax_nested(m_data);
+            }*/
+
+            auto maximum = hmax_nested(m_data);
             m_metadata.max = slice(maximum, 0);
         }
     }
