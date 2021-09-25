@@ -56,7 +56,7 @@ public:
                                       Mask active) const override {
         MTS_MASKED_FUNCTION(ProfilerPhase::PhaseFunctionSample, active);
 
-        Float cos_theta;
+        Float cos_theta = 0.f;
         Mask my_mask = enoki::abs(m_g) < math::Epsilon<ScalarFloat>;
         masked(cos_theta, my_mask) = 1 - 2 * sample.x();
         masked(cos_theta, !my_mask) = (1 + m_g * m_g - ((1 - m_g * m_g) / (1 - m_g + 2 * m_g * sample.x())) * ((1 - m_g * m_g) / (1 - m_g + 2 * m_g * sample.x()))) / (2 * m_g);
