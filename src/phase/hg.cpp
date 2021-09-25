@@ -59,7 +59,10 @@ public:
         Float cos_theta = 0.f;
         Mask my_mask = enoki::abs(m_g) < math::Epsilon<ScalarFloat>;
         masked(cos_theta, my_mask) = 1 - 2 * sample.x();
-        masked(cos_theta, !my_mask) = (1 + m_g * m_g - ((1 - m_g * m_g) / (1 - m_g + 2 * m_g * sample.x())) * ((1 - m_g * m_g) / (1 - m_g + 2 * m_g * sample.x()))) / (2 * m_g);
+        Float sqr_term = 0.f;
+        masked(sqr_term, !my_mask) = (1 - m_g * m_g) / (1 - m_g + 2 * m_g * sample.x());
+        masked(cos_theta, !my_mask) = (1 + m_g * m_g - sqr_term * sqr_term) / (2 * m_g);
+
 
         Float sin_theta = enoki::safe_sqrt(1.0f - cos_theta * cos_theta);
         auto [sin_phi, cos_phi] = enoki::sincos(2 * math::Pi<ScalarFloat> * sample.y());
