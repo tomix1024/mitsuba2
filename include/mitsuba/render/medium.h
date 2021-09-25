@@ -21,6 +21,11 @@ public:
     get_combined_extinction(const MediumInteraction3f &mi,
                             Mask active = true) const = 0;
 
+    /// Returns the max of sigmat
+    virtual UnpolarizedSpectrum
+    get_max_sigmat(const MediumInteraction3f &mi,
+                   Mask active) const = 0;
+
     /// Returns the medium coefficients Sigma_s, Sigma_n and Sigma_t evaluated
     /// at a given MediumInteraction mi
     virtual std::tuple<UnpolarizedSpectrum, UnpolarizedSpectrum,
