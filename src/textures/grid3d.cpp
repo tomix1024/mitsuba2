@@ -40,7 +40,7 @@ public:
     MTS_IMPORT_TYPES()
 
     GridVolume(const Properties &props) : Base(props), m_props(props) {
-        std::string filter_type = props.string("filter_type", "trilinear");
+        std::string filter_type = props.string("filter_type", "nearest");
         if (filter_type == "nearest")
             m_filter_type = FilterType::Nearest;
         else if (filter_type == "trilinear")
