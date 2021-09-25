@@ -26,31 +26,16 @@ public:
         m_scale = props.float_("scale", 1.0f);
         m_has_spectral_extinction = props.bool_("has_spectral_extinction", true);
 
-        //m_max_density = m_scale * m_sigmat->max();
+        m_max_density = m_scale * m_sigmat->max();
         m_aabb        = m_sigmat->bbox();
     }
 
     UnpolarizedSpectrum
-    get_combined_extinction(const MediumInteraction3f &mi,
+    get_combined_extinction(const MediumInteraction3f & /* mi */,
                             Mask active) const override {
         // TODO: This could be a spectral quantity (at least in RGB mode)
         MTS_MASKED_FUNCTION(ProfilerPhase::MediumEvaluate, active);
-        //return m_scale * m_sigmat->max();
-        /*std::cout << "get_combined_extinction start" << std::endl;
-        std::cout << mi.is_valid() << std::endl;
-        std::cout << mi << std::endl;
-        std::cout << mi.p << std::endl;
-        std::cout << any_or<true>(mi.is_valid()) << std::endl;
-        std::cout << "get_combined_extinction end" << std::endl;*/
-        //return m_sigmat->eval(mi, active) * m_scale;
-        //ENOKI_MARK_USED(m_sigmat->eval(mi, active));
-        return m_sigmat->eval(mi, active) * m_scale;//get_max_sigmat(mi, active);
-    }
-
-    UnpolarizedSpectrum
-    get_max_sigmat(const MediumInteraction3f &mi,
-                            Mask active) const override {
-        return m_sigmat->max() * m_scale;
+        return m_scale * m_sigmat->max();
     }
 
     std::tuple<UnpolarizedSpectrum, UnpolarizedSpectrum, UnpolarizedSpectrum>
@@ -59,7 +44,7 @@ public:
         MTS_MASKED_FUNCTION(ProfilerPhase::MediumEvaluate, active);
         auto sigmat = m_scale * m_sigmat->eval(mi, active);
         auto sigmas = sigmat * m_albedo->eval(mi, active);
-        auto sigman = get_max_sigmat(mi, active) - sigmat;//0.f;//m_sigmat->max() * m_scale - sigmat; // TODO this should be max again, check if that still works
+        auto sigman = get_combined_extinction(mi, active) - sigmat;
         return { sigmas, sigman, sigmat };
     }
 
@@ -91,7 +76,7 @@ private:
     ScalarFloat m_scale;
 
     ScalarBoundingBox3f m_aabb;
-    //ScalarFloat m_max_density;
+    ScalarFloat m_max_density;
 };
 
 MTS_IMPLEMENT_CLASS_VARIANT(HeterogeneousMedium, Medium)

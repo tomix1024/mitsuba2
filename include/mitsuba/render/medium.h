@@ -28,10 +28,6 @@ public:
     get_scattering_coefficients(const MediumInteraction3f &mi,
                                 Mask active = true) const = 0;
 
-    virtual UnpolarizedSpectrum
-    get_max_sigmat(const MediumInteraction3f &mi,
-                                Mask active = true) const = 0;
-
     /**
      * \brief Sample a free-flight distance in the medium.
      *
@@ -123,7 +119,6 @@ ENOKI_CALL_SUPPORT_TEMPLATE_BEGIN(mitsuba::Medium)
     ENOKI_CALL_SUPPORT_METHOD(is_homogeneous)
     ENOKI_CALL_SUPPORT_METHOD(has_spectral_extinction)
     ENOKI_CALL_SUPPORT_METHOD(get_combined_extinction)
-    ENOKI_CALL_SUPPORT_METHOD(get_max_sigmat)
     ENOKI_CALL_SUPPORT_METHOD(intersect_aabb)
     ENOKI_CALL_SUPPORT_METHOD(sample_interaction)
     ENOKI_CALL_SUPPORT_METHOD(eval_tr_and_pdf)

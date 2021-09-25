@@ -409,17 +409,6 @@ public:
         return m_metadata.max;
     }
 
-    UnpolarizedSpectrum max2(const Interaction3f &si, Mask active) const override {
-        using StorageType = Array<Float, Channels>;
-        //std::cout << m_max_index << std::endl;
-        return gather<StorageType>(m_data, Int32(m_max_index), active)[0];
-    }
-
-    ScalarFloat sum() const override {
-        auto sum = hsum(hsum(m_data));
-        return slice(sum, 0);
-    }
-
     ScalarVector3i resolution() const override { return m_metadata_constr.shape; };
     auto data_size() const { return m_data.size(); }
 

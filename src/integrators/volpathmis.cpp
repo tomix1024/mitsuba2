@@ -34,7 +34,7 @@ public:
     MTS_IMPORT_TYPES(Scene, Sampler, Emitter, EmitterPtr, BSDF, BSDFPtr,
                      Medium, MediumPtr, PhaseFunctionContext)
 
-    VolumetricMisPathIntegrator(const Properties &props) : Base(props) {
+                     VolumetricMisPathIntegrator(const Properties &props) : Base(props) {
         m_use_spectral_mis = props.bool_("use_spectral_mis", true);
         m_props = props;
     }
@@ -65,9 +65,9 @@ public:
     MTS_IMPORT_TYPES(Scene, Sampler, Emitter, EmitterPtr, BSDF, BSDFPtr,
                      Medium, MediumPtr, PhaseFunctionContext)
 
-    using WeightMatrix =
-        std::conditional_t<SpectralMis, Matrix<Float, array_size_v<UnpolarizedSpectrum>>,
-                           UnpolarizedSpectrum>;
+                     using WeightMatrix =
+                         std::conditional_t<SpectralMis, Matrix<Float, array_size_v<UnpolarizedSpectrum>>,
+                         UnpolarizedSpectrum>;
 
     VolpathMisIntegratorImpl(const Properties &props) : Base(props) {}
 
@@ -152,7 +152,7 @@ public:
             Mask active_medium  = active && neq(medium, nullptr);
             Mask active_surface = active && !active_medium;
             Mask act_null_scatter = false, act_medium_scatter = false,
-                 escaped_medium = false;
+            escaped_medium = false;
 
             // If the medium does not have a spectrally varying extinction,
             // we can perform a few optimizations to speed up rendering
@@ -165,8 +165,6 @@ public:
 
             if (any_or<true>(active_medium)) {
                 mi = medium->sample_interaction(ray, sampler->next_1d(active_medium), channel, active_medium);
-                //std::cout << "sample" << std::endl;
-                //std::cout << mi.combined_extinction << std::endl;
                 masked(ray.maxt, active_medium && medium->is_homogeneous() && mi.is_valid()) = mi.t;
                 Mask intersect = needs_intersection && active_medium;
                 if (any_or<true>(intersect))
@@ -183,20 +181,12 @@ public:
                 active_medium &= mi.is_valid();
                 is_spectral &= active_medium;
                 not_spectral &= active_medium;
-                //std::cout << any_or<true>(active_medium) << std::endl;
             }
 
             if (any_or<true>(active_medium)) {
-                auto next1d = sampler->next_1d(active_medium);
-                auto sigmat = index_spectrum(mi.sigma_t, channel);
-                auto combined = index_spectrum(mi.combined_extinction, channel);
-                auto ratio = sigmat / combined;
-                Mask null_scatter = next1d >= ratio;
+                Mask null_scatter = sampler->next_1d(active_medium) >= index_spectrum(mi.sigma_t, channel) / index_spectrum(mi.combined_extinction, channel);
                 act_null_scatter |= null_scatter && active_medium;
                 act_medium_scatter |= !act_null_scatter && active_medium;
-                //std::cout << "next1d " << next1d << " sigmat " << sigmat << " combined " << combined <<  " ratio " << ratio << " null_scatter " << act_null_scatter << " medium_scatter " << act_medium_scatter << std::endl;
-
-
 
                 // Count this as a bounce
                 masked(depth, act_medium_scatter) += 1;
@@ -207,15 +197,15 @@ public:
                 act_medium_scatter &= active;
                 specular_chain = specular_chain && !(act_medium_scatter && sample_emitters);
 
-                //std::cout << "nullscatter " << any_or<true>(act_null_scatter) << std::endl;
+
                 if (any_or<true>(act_null_scatter)) {
                     if (any_or<true>(is_spectral)) {
                         update_weights(p_over_f, mi.sigma_n / mi.combined_extinction, mi.sigma_n, channel, is_spectral && act_null_scatter);
                         update_weights(p_over_f_nee, 1.0f, mi.sigma_n, channel, is_spectral && act_null_scatter);
                     }
                     if (any_or<true>(not_spectral)) {
-                       update_weights(p_over_f, mi.sigma_n, mi.sigma_n, channel, not_spectral && act_null_scatter);
-                       update_weights(p_over_f_nee, 1.0f, mi.sigma_n / mi.combined_extinction, channel, not_spectral && act_null_scatter);
+                        update_weights(p_over_f, mi.sigma_n, mi.sigma_n, channel, not_spectral && act_null_scatter);
+                        update_weights(p_over_f_nee, 1.0f, mi.sigma_n / mi.combined_extinction, channel, not_spectral && act_null_scatter);
                     }
 
                     masked(ray.o, act_null_scatter) = mi.p;
@@ -223,7 +213,6 @@ public:
                     masked(si.t, act_null_scatter) = si.t - mi.t;
                 }
 
-                //std::cout << "mediumscatter " << any_or<true>(act_medium_scatter) << std::endl;
                 if (any_or<true>(act_medium_scatter)) {
                     if (any_or<true>(is_spectral))
                         update_weights(p_over_f, mi.sigma_t / mi.combined_extinction, mi.sigma_s, channel, is_spectral && act_medium_scatter);
@@ -284,7 +273,7 @@ public:
                     }
                     Spectrum emitted = emitter->eval(si, active_e);
                     Spectrum contrib = select(count_direct, mis_weight(p_over_f) * emitted,
-                                                            mis_weight(p_over_f, p_over_f_nee) * emitted);
+                                              mis_weight(p_over_f, p_over_f_nee) * emitted);
                     masked(result, active_e) += contrib;
                 }
             }
@@ -308,7 +297,7 @@ public:
 
                 // ----------------------- BSDF sampling ----------------------
                 auto [bs, bsdf_weight] = bsdf->sample(ctx, si, sampler->next_1d(active_surface),
-                                                   sampler->next_2d(active_surface), active_surface);
+                                                      sampler->next_2d(active_surface), active_surface);
                 Mask invalid_bsdf_sample = active_surface && eq(bs.pdf, 0.f);
                 active_surface &= bs.pdf > 0.f;
                 masked(eta, active_surface) *= bs.eta;
@@ -340,7 +329,7 @@ public:
 
 
     std::tuple<WeightMatrix, WeightMatrix, Spectrum, DirectionSample3f> sample_emitter(const Interaction3f &ref_interaction, Mask is_medium_interaction,
-                const Scene *scene, Sampler *sampler,  MediumPtr medium, const WeightMatrix &p_over_f, UInt32 channel, Mask active) const {
+                                                                                       const Scene *scene, Sampler *sampler,  MediumPtr medium, const WeightMatrix &p_over_f, UInt32 channel, Mask active) const {
         using EmitterPtr = replace_scalar_t<Float, const Emitter *>;
         WeightMatrix p_over_f_nee = p_over_f, p_over_f_uni = p_over_f;
 
@@ -375,8 +364,6 @@ public:
 
             if (any_or<true>(active_medium)) {
                 auto mi = medium->sample_interaction(ray, sampler->next_1d(active_medium), channel, active_medium);
-                //std::cout << mi.combined_extinction << std::endl;
-                //std::cout << "sample emitter" << std::endl;
                 masked(ray.maxt, active_medium && medium->is_homogeneous() && mi.is_valid()) = min(mi.t, remaining_dist);
                 Mask intersect = needs_intersection && active_medium;
                 if (any_or<true>(intersect))
@@ -401,7 +388,6 @@ public:
                 active_medium &= mi.is_valid();
                 is_spectral &= active_medium;
                 not_spectral &= active_medium;
-                //std::cout << any_or<true>(active_medium) << std::endl;
 
                 masked(total_dist, active_medium) += mi.t;
 
@@ -442,10 +428,10 @@ public:
 
             // Continue tracing through scene if non-zero weights exist
             if constexpr (SpectralMis)
-                active &= (active_medium || active_surface) && any(neq(mis_weight(p_over_f_uni), 0.f));
+            active &= (active_medium || active_surface) && any(neq(mis_weight(p_over_f_uni), 0.f));
             else
                 active &= (active_medium || active_surface) &&
-                      (any(neq(depolarize(p_over_f_uni), 0.f)) || any(neq(depolarize(p_over_f_nee), 0.f)) );
+                    (any(neq(depolarize(p_over_f_uni), 0.f)) || any(neq(depolarize(p_over_f_nee), 0.f)) );
 
             // If a medium transition is taking place: Update the medium pointer
             Mask has_medium_trans = active_surface && si.is_medium_transition();
@@ -542,8 +528,8 @@ NAMESPACE_END(detail)
 
 template <typename Float, typename Spectrum, bool SpectralMis>
 Class *VolpathMisIntegratorImpl<Float, Spectrum, SpectralMis>::m_class
-    = new Class(detail::volpath_class_name<SpectralMis>(), "MonteCarloIntegrator",
-                ::mitsuba::detail::get_variant<Float, Spectrum>(), nullptr, nullptr);
+= new Class(detail::volpath_class_name<SpectralMis>(), "MonteCarloIntegrator",
+            ::mitsuba::detail::get_variant<Float, Spectrum>(), nullptr, nullptr);
 
 template <typename Float, typename Spectrum, bool SpectralMis>
 const Class* VolpathMisIntegratorImpl<Float, Spectrum, SpectralMis>::class_() const {
