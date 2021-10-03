@@ -35,7 +35,7 @@ public:
                             Mask active) const override {
         // TODO: This could be a spectral quantity (at least in RGB mode)
         MTS_MASKED_FUNCTION(ProfilerPhase::MediumEvaluate, active);
-        return m_scale * m_sigmat->max();
+        return m_scale * m_sigmat->max(active);
     }
 
     std::tuple<UnpolarizedSpectrum, UnpolarizedSpectrum, UnpolarizedSpectrum>

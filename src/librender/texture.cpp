@@ -111,8 +111,8 @@ Volume<Float, Spectrum>::eval_gradient(const Interaction3f & /*it*/, Mask /*acti
     NotImplementedError("eval_gradient");
 }
 
-MTS_VARIANT typename Volume<Float, Spectrum>::ScalarFloat
-Volume<Float, Spectrum>::max() const { NotImplementedError("max"); }
+MTS_VARIANT typename Volume<Float, Spectrum>::UnpolarizedSpectrum
+Volume<Float, Spectrum>::max(Mask /*active*/) const { NotImplementedError("max"); }
 
 MTS_VARIANT typename Volume<Float, Spectrum>::ScalarVector3i
 Volume<Float, Spectrum>::resolution() const {

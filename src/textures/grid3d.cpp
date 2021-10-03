@@ -149,6 +149,10 @@ public:
 
 
         m_size     = hprod(m_metadata.shape);
+
+        auto maximum = recompute_max();
+        m_metadata.max = slice(maximum, 0);
+
         if (props.bool_("use_grid_bbox", false)) {
             m_world_to_local = m_metadata.transform * m_world_to_local;
             update_bbox();
@@ -362,7 +366,24 @@ public:
         }
     }
 
-    ScalarFloat max() const override { return m_metadata.max; }
+    auto recompute_max() {
+        using StorageType = Array<Float, Channels>;
+        auto maximum = gather<StorageType>(m_data, Int32(0), Mask(true))[0];
+        m_max_index = Int32(0);
+        for (ScalarUInt32 i = 1; i < m_size; i++) {
+            auto data = gather<StorageType>(m_data, Int32(i), Mask(true))[0];
+            maximum = enoki::max(data, maximum);
+            if (maximum == data) {
+                m_max_index = Int32(i);
+            }
+        }
+        return maximum;
+    }
+
+    UnpolarizedSpectrum max(Mask active) const override {
+        using StorageType = Array<Float, Channels>;
+        return gather<StorageType>(m_data, m_max_index, active)[0];
+    }
 
     ScalarVector3i resolution() const override { return m_metadata.shape; };
     auto data_size() const { return m_data.size(); }
@@ -389,7 +410,7 @@ public:
         auto sum = hsum(hsum(m_data));
         m_metadata.mean = (double) enoki::slice(sum, 0) / (double) (m_size * 3);
         if (!m_fixed_max) {
-            auto maximum = hmax_nested(m_data);
+            auto maximum = recompute_max();//hmax_nested(m_data);
             m_metadata.max = slice(maximum, 0);
         }
     }
@@ -410,6 +431,7 @@ public:
 protected:
     DynamicBuffer<Float> m_data;
     bool m_fixed_max = false;
+    Int32 m_max_index;
     VolumeMetadata m_metadata;
     enoki::divisor<int32_t> m_inv_resolution_x, m_inv_resolution_y, m_inv_resolution_z;
 

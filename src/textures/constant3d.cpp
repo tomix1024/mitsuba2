@@ -34,7 +34,7 @@ public:
     }
 
 
-    ScalarFloat max() const override { return m_color->mean(); }
+    UnpolarizedSpectrum max(Mask active) const override { return m_color->mean(); }
 
     void traverse(TraversalCallback *callback) override {
         callback->put_object("color", m_color.get());
