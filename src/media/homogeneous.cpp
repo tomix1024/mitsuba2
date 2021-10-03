@@ -38,13 +38,6 @@ public:
         return eval_sigmat(mi);
     }
 
-    UnpolarizedSpectrum
-    get_max_sigmat(const MediumInteraction3f &mi,
-                   Mask active) const override {
-        MTS_MASKED_FUNCTION(ProfilerPhase::MediumEvaluate, active);
-        return m_sigmat->max() * m_scale;
-    }
-
     std::tuple<UnpolarizedSpectrum, UnpolarizedSpectrum, UnpolarizedSpectrum>
     get_scattering_coefficients(const MediumInteraction3f &mi,
                                 Mask active) const override {

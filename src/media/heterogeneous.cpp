@@ -31,18 +31,11 @@ public:
     }
 
     UnpolarizedSpectrum
-    get_max_sigmat(const MediumInteraction3f &mi,
-                   Mask active) const override {
-        MTS_MASKED_FUNCTION(ProfilerPhase::MediumEvaluate, active);
-        return m_sigmat->max() * m_scale;
-    }
-
-    UnpolarizedSpectrum
-    get_combined_extinction(const MediumInteraction3f &mi,
+    get_combined_extinction(const MediumInteraction3f & /* mi */,
                             Mask active) const override {
         // TODO: This could be a spectral quantity (at least in RGB mode)
         MTS_MASKED_FUNCTION(ProfilerPhase::MediumEvaluate, active);
-        return m_scale * m_sigmat->eval(mi, active);  //setting the majorant to sigmat at that position means setting sigma_n to 0 automatically, hence assuming piecewise simple media (which is the case anyways with grids)
+        return m_scale * m_sigmat->max();
     }
 
     std::tuple<UnpolarizedSpectrum, UnpolarizedSpectrum, UnpolarizedSpectrum>
