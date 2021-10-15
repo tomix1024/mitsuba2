@@ -37,7 +37,7 @@ NAMESPACE_BEGIN(xml)
 enum class Tag {
     Boolean, Integer, Float, String, Point, Vector, Spectrum, RGB,
     Transform, Translate, Matrix, Rotate, Scale, LookAt, Object,
-    NamedReference, Include, Alias, Default, Resource, Invalid
+    NamedReference, Include, Alias, Default, Resource, Invalid, Comment
 };
 
 struct Version {
@@ -148,6 +148,7 @@ void register_class(const Class *class_) {
         (*tags)["alias"]         = Tag::Alias;
         (*tags)["default"]       = Tag::Default;
         (*tags)["path"]          = Tag::Resource;
+        (*tags)["comment"]       = Tag::Comment;
     }
 
     // Register the new class as an object tag
@@ -542,6 +543,11 @@ static std::pair<std::string, std::string> parse_xml(XMLSource &src, XMLParseCon
         }
 
         switch (tag) {
+            case Tag::Comment: {
+                    return std::make_pair("", "");
+                }
+                break;
+
             case Tag::Object: {
                     check_attributes(src, node, { "type", "id", "name" });
                     std::string id        = node.attribute("id").value(),
