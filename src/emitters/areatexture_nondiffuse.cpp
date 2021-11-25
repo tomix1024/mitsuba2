@@ -201,6 +201,7 @@ public:
 
     void traverse(TraversalCallback *callback) override {
         callback->put_object("radiance", m_radiance.get());
+        callback->put_object("nvalue", m_nvalue.get());
     }
 
     std::string to_string() const override {
