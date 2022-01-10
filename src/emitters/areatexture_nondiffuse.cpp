@@ -119,7 +119,7 @@ public:
                 si, math::sample_shifted<Wavelength>(wavelength_sample), active);
         } else {
             wavelength = zero<Wavelength>();
-            spec_weight = m_radiance->eval(si, active);
+            spec_weight = eval(si, active);//m_radiance->eval(si, active);
         }
 
         return std::make_pair(
@@ -169,7 +169,7 @@ public:
             ds.pdf = select(active, pdf / norm(cross(si.dp_du, si.dp_dv)) *
                                         dist_squared / -dp, 0.f);
 
-            spec = m_radiance->eval(si, active) / ds.pdf;
+            spec = eval(si, active) / ds.pdf;//m_radiance->eval(si, active) / ds.pdf;
         }
 
         ds.object = this;
