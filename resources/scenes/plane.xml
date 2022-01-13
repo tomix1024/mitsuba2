@@ -1,0 +1,51 @@
+<scene version='2.0.0'>
+    <!--path value="../common"/-->
+
+    <integrator type='path'>
+    </integrator>
+
+    <sensor type="perspective">
+        <float name="near_clip" value="1"/>
+        <float name="far_clip" value="1000"/>
+
+        <transform name="to_world">
+            <lookat target="0.0, 0.0, 0.0"
+                    origin="0.0, 0.0, 10.0"
+                    up    ="0.0, 1.0, 0.0"/>
+            <rotate x="1" y="0" z="0" angle="10" />
+        </transform>
+
+        <film type="hdrfilm">
+            <rfilter type="box"/>
+            <integer name="width" value="512"/>
+            <integer name="height" value="512"/>
+        </film>
+
+        <sampler type="independent">
+            <integer name="sample_count" value="4"/>
+        </sampler>
+    </sensor>
+
+    <shape type="rectangle">
+
+        <emitter type="display_emitter">
+            <spectrum name="radiance" value="0.2" />
+            <!--
+            <float name="emission_coeff_0" value="0.19645563965818064" />
+            <float name="emission_coeff_1" value="-31.75171438698627" />
+            <float name="emission_coeff_2" value="151.73916340717923" />
+            <float name="emission_coeff_3" value="-273.58766361880816" />
+            <float name="emission_coeff_4" value="218.3898205305252" />
+            <float name="emission_coeff_5" value="-64.82020824463875" />
+            -->
+        </emitter>
+        <!--bsdf type="diffuse">
+            <rgb name="reflectance" value="0.9 0.9 0.0"/>
+        </bsdf-->
+
+        <transform name="to_world">
+            <scale x="10" y="10" z="1"/>
+        </transform>
+    </shape>
+
+</scene>
