@@ -29,15 +29,13 @@
     <shape type="rectangle">
 
         <emitter type="display_emitter">
-            <spectrum name="radiance" value="0.2" />
-            <!--
-            <float name="emission_coeff_0" value="0.19645563965818064" />
-            <float name="emission_coeff_1" value="-31.75171438698627" />
-            <float name="emission_coeff_2" value="151.73916340717923" />
-            <float name="emission_coeff_3" value="-273.58766361880816" />
-            <float name="emission_coeff_4" value="218.3898205305252" />
-            <float name="emission_coeff_5" value="-64.82020824463875" />
-            -->
+            <spectrum name="radiance" value="1" />
+            <float name="emission_coeff_0" value="0.13097043034158304" />
+            <float name="emission_coeff_1" value="-21.16781022196965" />
+            <float name="emission_coeff_2" value="101.1594452853125" />
+            <float name="emission_coeff_3" value="-182.39178117999248" />
+            <float name="emission_coeff_4" value="145.59321802483947" />
+            <float name="emission_coeff_5" value="-43.21347345061659" />
         </emitter>
         <!--bsdf type="diffuse">
             <rgb name="reflectance" value="0.9 0.9 0.0"/>

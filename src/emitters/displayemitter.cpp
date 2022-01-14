@@ -59,7 +59,11 @@ public:
         ScalarFloat scene_ior = lookup_ior(props, "scene_ior", "air"); // water
         ScalarFloat display_ior = lookup_ior(props, "display_ior", "bk7");
 
-        m_eta = scene_ior / display_ior;
+        // n2 / n1 here!!
+        // From fresnel.h:
+        // > A value greater than 1.0 case means that the surface normal
+        // > points into the region of lower density.
+        m_eta = display_ior / scene_ior;
 
         m_thickness = props.float_("thickness", 0);
 
@@ -92,18 +96,23 @@ public:
 
         /* Using Snell's law, calculate the squared sine of the
         angle between the surface normal and the transmitted ray */
-        Float cos_theta_t_sqr = 1.0f - m_eta * m_eta * (1.0f - cos_theta_i * cos_theta_i);
-        Float cos_theta_t_abs = safe_sqrt(cos_theta_t_sqr);
-        Float cos_theta_t = mulsign_neg(cos_theta_t_abs, cos_theta_i);
+        //Float cos_theta_t_sqr = 1.0f - m_eta * m_eta * (1.0f - cos_theta_i * cos_theta_i);
+        //Float cos_theta_t = mulsign_neg(cos_theta_t_abs, cos_theta_i);
 
-        // Vector3f wo = refract(si.wi, cos_theta_t, Float(m_eta));
+        auto [ a_s, a_p, cos_theta_t, eta_it, eta_ti ] = fresnel_polarized(cos_theta_i, Float(m_eta));
+        auto cos_theta_t_abs = abs(cos_theta_t);
 
-        auto [T_s, T_p] = fresnel_polarized_power_transmittance(cos_theta_i, cos_theta_t, Float(m_eta));
+        // Vector3f wo = refract(si.wi, cos_theta_t, eta_ti);
 
-        auto T = 0.5*(T_s + T_p) * cos_theta_t_abs / cos_theta_i_abs;
+        Float R_s = squared_norm(a_s);
+        Float R_p = squared_norm(a_p);
+        Float T_s = 1 - R_s;
+        Float T_p = 1 - R_p;
 
-        /*
-        Vector2f parallel_dir = Vector2f(si.wi.x(), si.wi.y()) / (1.0f - Frame3f::cos_theta_2(si.wi));
+        // auto T = 0.5*(T_s + T_p);
+
+        // TODO handle parallel_dir close to 0!
+        Vector2f parallel_dir = Vector2f(si.wi.x(), si.wi.y()) / safe_sqrt(1.0f - Frame3f::cos_theta_2(si.wi));
         Float px = parallel_dir.x();
         Float py = parallel_dir.y();
 
@@ -112,16 +121,15 @@ public:
         Float J_p = px*m_polarization_dir_x + py*m_polarization_dir_y; // Parallel
         Float J_s = px*m_polarization_dir_y - py*m_polarization_dir_x; // Senkrecht
 
-        Float T = (sqr(J_s)*T_s + sqr(J_p)*T_p) * cos_theta_t_abs / cos_theta_i_abs;
-        */
+        // Transmittance
+        Float T = (sqr(J_s)*T_s + sqr(J_p)*T_p);
 
-        /*
-        auto [ r, cos_theta_t, eta_it, eta_ti ] = fresnel(cos_theta_i, Float(m_eta));
-        Float T = 1-r;
-        */
+        // Fix normal incidence
+        auto normal_incidence_mask = Frame3f::cos_theta(si.wi) > 1.0 - 1e-4;
+        masked(T, normal_incidence_mask) = 0.5 * (T_s + T_p);
 
-        /*
-        Float E = 1+ 0 * fmadd(
+        // Emission profile
+        Float E = fmadd(
                         fmadd(
                             fmadd(
                                 fmadd(
@@ -132,10 +140,9 @@ public:
                             cos_theta_t_abs, m_emission_coeff_2),
                         cos_theta_t_abs, m_emission_coeff_1),
                     cos_theta_t_abs, m_emission_coeff_0);
-        */
 
         // TODO modify si!!
-        return T * m_radiance->eval(si, active);
+        return T * E * m_radiance->eval(si, active);
     }
 
     std::pair<Ray3f, Spectrum> sample_ray(Float time, Float wavelength_sample,
