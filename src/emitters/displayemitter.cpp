@@ -63,8 +63,6 @@ public:
         auto [ a_s, a_p, cos_theta_t, eta_it, eta_ti ] = fresnel_polarized(cos_theta_i, Float(m_eta));
         auto cos_theta_t_abs = abs(cos_theta_t);
 
-        // Vector3f wo = refract(si.wi, cos_theta_t, eta_ti);
-
         Float R_s = squared_norm(a_s);
         Float R_p = squared_norm(a_p);
         Float T_s = 1 - R_s;
@@ -103,7 +101,28 @@ public:
                     cos_theta_t_abs, m_emission_coeff_0);
 
         // TODO modify si!!
-        return T * E * m_radiance->eval(si, active);
+
+        // NOTE: it is possible that the value returned by m_radiance->eval does _not_ depend on the uv coordinates but on the mesh attributes instead.
+        // This will not be supported properly here.
+
+        Vector3f wo = refract(si.wi, cos_theta_t, eta_ti);
+        wo /= m_thickness * wo.z();
+
+        Vector3f dp_du = si.to_local(si.dp_du);
+        Vector3f dp_dv = si.to_local(si.dp_dv);
+
+        // Fuv(Fp(uv)) = uv
+        // D( Fuv(Fp(uv)) ) = Id = Duv(p) * Dp(uv)
+        Float det = dp_du.x() * dp_dv.y() - dp_du.y() * dp_dv.x();
+        Vector2f duv_dx = Vector2f(dp_dv.y(), dp_du.y()) / det;
+        Vector2f duv_dy = Vector2f(dp_dv.x(), dp_du.x()) / det;
+
+        Vector2f update_uv = wo.x() * duv_dx + wo.y() * duv_dy;
+
+        SurfaceInteraction3f si2 = si;
+        si2.uv += update_uv;
+
+        return T * E * m_radiance->eval(si2, active);
     }
 
     std::pair<Ray3f, Spectrum> sample_ray(Float time, Float wavelength_sample,
