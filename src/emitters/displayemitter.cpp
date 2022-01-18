@@ -114,13 +114,13 @@ public:
         // Fuv(Fp(uv)) = uv
         // D( Fuv(Fp(uv)) ) = Id = Duv(p) * Dp(uv)
         Float det = dp_du.x() * dp_dv.y() - dp_du.y() * dp_dv.x();
-        Vector2f duv_dx = Vector2f(dp_dv.y(), dp_du.y()) / det;
-        Vector2f duv_dy = Vector2f(dp_dv.x(), dp_du.x()) / det;
+        Vector2f duv_dx = Vector2f(dp_dv.y(), -dp_du.y()) / det;
+        Vector2f duv_dy = Vector2f(-dp_dv.x(), dp_du.x()) / det;
 
         Vector2f update_uv = wo.x() * duv_dx + wo.y() * duv_dy;
 
         SurfaceInteraction3f si2 = si;
-        si2.uv += update_uv;
+        si2.uv -= update_uv;
 
         return T * E * m_radiance->eval(si2, active);
     }
