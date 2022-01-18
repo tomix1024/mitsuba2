@@ -9,45 +9,6 @@
 
 NAMESPACE_BEGIN(mitsuba)
 
-
-template <typename Float>
-static std::tuple<Float, Float> fresnel_polarized_power_transmittance(Float cos_theta_i, Float cos_theta_t, Float eta) {
-    auto outside_mask = cos_theta_i >= 0.f;
-
-    Float rcp_eta = rcp(eta),
-          eta_it = select(outside_mask, eta, rcp_eta),
-          eta_ti = select(outside_mask, rcp_eta, eta);
-
-    /* Find the absolute cosines of the incident/transmitted rays */
-    Float cos_theta_i_abs = abs(cos_theta_i);
-    Float cos_theta_t_abs = abs(cos_theta_t);
-
-    auto index_matched = eq(eta, 1.f),
-         special_case  = index_matched || eq(cos_theta_i_abs, 0.f);
-
-    Float T_sc = select(index_matched, Float(1.f), Float(0.f));
-
-    /* Amplitudes of reflected waves */
-    /*
-    Float a_s = fnmadd(eta_it, cos_theta_t_abs, cos_theta_i_abs) /
-                 fmadd(eta_it, cos_theta_t_abs, cos_theta_i_abs);
-
-    Float a_p = fnmadd(eta_it, cos_theta_i_abs, cos_theta_t_abs) /
-                 fmadd(eta_it, cos_theta_i_abs, cos_theta_t_abs);
-    */
-    Float t_s = 2*cos_theta_i_abs / fmadd(eta_it, cos_theta_t_abs, cos_theta_i_abs);
-    Float t_p = 2*cos_theta_i_abs / fmadd(eta_it, cos_theta_i_abs, cos_theta_t_abs);
-
-    Float T_s = sqr(t_s);
-    Float T_p = sqr(t_p);
-
-    masked(T_s, special_case) = T_sc;
-    masked(T_p, special_case) = T_sc;
-
-    return { T_s, T_p };
-}
-
-
 template <typename Float, typename Spectrum>
 class DisplayEmitter final : public Emitter<Float, Spectrum> {
 public:
@@ -56,14 +17,14 @@ public:
 
     DisplayEmitter(const Properties &props) : Base(props) {
 
-        ScalarFloat scene_ior = lookup_ior(props, "scene_ior", "air"); // water
-        ScalarFloat display_ior = lookup_ior(props, "display_ior", "bk7");
+        ScalarFloat int_ior = lookup_ior(props, "int_ior", "bk7");
+        ScalarFloat ext_ior = lookup_ior(props, "ext_ior", "air"); // water
 
         // n2 / n1 here!!
         // From fresnel.h:
         // > A value greater than 1.0 case means that the surface normal
         // > points into the region of lower density.
-        m_eta = display_ior / scene_ior;
+        m_eta = int_ior / ext_ior;
 
         m_thickness = props.float_("thickness", 0);
 
