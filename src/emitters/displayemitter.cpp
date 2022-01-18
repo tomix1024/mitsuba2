@@ -106,7 +106,11 @@ public:
         // This will not be supported properly here.
 
         Vector3f wo = refract(si.wi, cos_theta_t, eta_ti);
-        wo /= m_thickness * wo.z();
+        // Project wo to the "bottom" of the display
+        //     t * wo.z() = -m_thickness
+        // <=> t = -m_thickness / wo.z()
+        //  => wo *= -m_thickness / wo.z()
+        wo *= -m_thickness / wo.z();
 
         Vector3f dp_du = si.to_local(si.dp_du);
         Vector3f dp_dv = si.to_local(si.dp_dv);
@@ -120,7 +124,7 @@ public:
         Vector2f update_uv = wo.x() * duv_dx + wo.y() * duv_dy;
 
         SurfaceInteraction3f si2 = si;
-        si2.uv -= update_uv;
+        si2.uv += update_uv;
 
         return T * E * m_radiance->eval(si2, active);
     }
